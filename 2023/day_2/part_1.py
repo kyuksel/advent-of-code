@@ -2,9 +2,7 @@ import argparse
 import re
 from typing import TypedDict
 
-# DEFAULT_INPUT = "2023/day_2/input.txt"
-DEFAULT_INPUT = "2023/day_2/part_1_test_input_1.txt"
-
+DEFAULT_INPUT = "2023/day_2/input.txt"
 MAX_NUM_CUBES = {"red": 12, "green": 13, "blue": 14}
 
 
