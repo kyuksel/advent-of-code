@@ -2,14 +2,17 @@ import argparse
 import re
 from typing import TypedDict
 
-DEFAULT_INPUT = "2023/day_2/input.txt"
-MAX_NUM_CUBES = {"red": 12, "green": 13, "blue": 14}
+DEFAULT_INPUT = "2023/day_3/input.txt"
+
+REGEX_SYMBOL = re.compile("([^.\s\d]+)")
+REGEX_NUMBER = re.compile(r"(\d+)")
 
 
-class CubeSet(TypedDict):
-    blue: int
-    green: int
-    red: int
+class Number(TypedDict):
+    value: int
+    row: int
+    start: int
+    end: int
 
 
 def main():
@@ -19,64 +22,49 @@ def main():
 
     input = args.input if args.input else DEFAULT_INPUT
 
-    sum_valid_game_ids = 0
+    num_columns, num_rows = 140, 140
+    # initialize to True meaning number can be placed here
+    symbol_adjacency_matrix = [[False] * num_columns for _ in range(num_rows)]
+
+    numbers = []
 
     with open(input) as f:
+        row = -1
         lines = f.readlines()
         for line in lines:
-            cube_set_strings = get_cube_set_strings(strip_game_and_id(line))
-            if has_enough_cubes(cube_set_strings):
-                valid_game_id = get_game_id(line)
-                sum_valid_game_ids += valid_game_id
-                print(f"Game {valid_game_id} is valid.")
+            row += 1
+            update_symbol_adjacency_matrix(line, row, symbol_adjacency_matrix)
+            numbers += get_numbers(line, row)
 
-    print(f"Result: {sum_valid_game_ids}")
+    part_numbers = []
+    for number in numbers:
+        if all(
+            symbol_adjacency_matrix[number["row"]][number["start"] : number["end"] + 1]
+        ):
+            part_numbers.append(number["value"])
 
-
-def get_game_id(line: str) -> int:
-    pattern = "^Game (\d{1,3}):"
-    game_id_search = re.search(pattern, line)
-    assert game_id_search is not None
-    game_id = game_id_search.group(1)
-    return int(game_id)
-
-
-def strip_game_and_id(line: str) -> str:
-    colon_index = line.find(":")
-    assert colon_index != -1
-    first_cube_set_index = colon_index + 2
-    return line[first_cube_set_index:]
+    print(f"Part numbers: {part_numbers}")
+    result = sum(part_numbers)
+    print(f"Result: {result}")
 
 
-def get_cube_set_strings(line: str) -> list[str]:
-    return line.split("; ")
+def update_symbol_adjacency_matrix(
+    line: str, row: int, symbol_adjacency_matrix: list[list[bool]]
+) -> None:
+    for match in re.finditer(REGEX_SYMBOL, line):
+        column = match.start()
+        for r in range(row - 1, row + 1):
+            for c in range(column - 1, column + 1):
+                symbol_adjacency_matrix[r][
+                    c
+                ] = True  # a part number can't touch this location
 
 
-def get_cube_set(cube_set_string: str) -> CubeSet:
-    num_red = re.search(r"(\d+) red", cube_set_string)
-    num_green = re.search(r"(\d+) green", cube_set_string)
-    num_blue = re.search(r"(\d+) blue", cube_set_string)
-
-    cube_set = CubeSet(
-        red=int(num_red.group(1)) if num_red is not None else 0,
-        green=int(num_green.group(1)) if num_green is not None else 0,
-        blue=int(num_blue.group(1)) if num_blue is not None else 0,
-    )
-
-    return cube_set
-
-
-def has_enough_cubes(cube_set_strings: list[str]) -> bool:
-    for cube_set_string in cube_set_strings:
-        cube_set = get_cube_set(cube_set_string)
-        is_enough = (
-            cube_set["red"] <= MAX_NUM_CUBES["red"]
-            and cube_set["green"] <= MAX_NUM_CUBES["green"]
-            and cube_set["blue"] <= MAX_NUM_CUBES["blue"]
+def get_numbers(line: str, row: int) -> list[Number]:
+    for match in re.finditer(REGEX_NUMBER, line):
+        yield Number(
+            value=int(match.group()), row=row, start=match.start(), end=match.end()
         )
-        if not is_enough:
-            return False
-    return True
 
 
 if __name__ == "__main__":
